@@ -1,3 +1,5 @@
+package org.saswata
+
 sealed trait Json {
   def apply(i: Int): Json = ???
   def apply(k: String): Json = ???

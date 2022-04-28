@@ -1,3 +1,5 @@
+package org.saswata
+
 object Main {
 
   def main(args: Array[String]): Unit = {
@@ -26,7 +28,7 @@ object Main {
           acc match {
             case obj: JObj => obj(k)
             case arr: JArr => arr(k.toInt)
-            case _         => throw new IllegalArgumentException(s"Failed Key lookup $k")
+            case _ => throw new IllegalArgumentException(s"Failed Key lookup $k")
           }
       )
 

@@ -1,6 +1,9 @@
+package org.saswata
+
 import scala.collection.mutable
 
 class Parser(val input: String) {
+
   import Parser._
 
   private var offset: Int = 0
@@ -14,14 +17,14 @@ class Parser(val input: String) {
     if (offset >= input.length) throw new IllegalArgumentException(s"Unexpected end of input")
     val current = input(offset)
     current match {
-      case DOUBLE_QUOTE   => JStr(parseStr())
+      case DOUBLE_QUOTE => JStr(parseStr())
       case c if c.isDigit => JNum(parseNum())
-      case '+' | '-'      => JNum(parseNum())
-      case 't' | 'f'      => JBool(parseBool())
-      case 'n'            => parseNull()
-      case '{'            => parseObj()
-      case '['            => parseArr()
-      case x              => throw new IllegalArgumentException(s"Unexpected $x at ${input.substring(offset)}")
+      case '+' | '-' => JNum(parseNum())
+      case 't' | 'f' => JBool(parseBool())
+      case 'n' => parseNull()
+      case '{' => parseObj()
+      case '[' => parseArr()
+      case x => throw new IllegalArgumentException(s"Unexpected $x at ${input.substring(offset)}")
     }
   }
 
@@ -50,9 +53,9 @@ class Parser(val input: String) {
   def parseNum(): Double = {
     val start = offset
     while (offset < input.length
-           && !(input(offset).isWhitespace
-           || input(offset) == ']'
-           || FIELD_TERMINATORS.contains(input(offset)))) {
+      && !(input(offset).isWhitespace
+      || input(offset) == ']'
+      || FIELD_TERMINATORS.contains(input(offset)))) {
       offset += 1
     }
     if (offset < input.length)
