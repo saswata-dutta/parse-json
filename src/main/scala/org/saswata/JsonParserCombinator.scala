@@ -1,6 +1,8 @@
 package org.saswata
 
-object SimpleParser {
+import scala.util.Try
+
+object JsonParserCombinator {
   // https://www.json.org/json-en.html
 
   def skipWs(input: String, index: Int): Int = {
@@ -18,6 +20,18 @@ object SimpleParser {
     }
 
     if (pos == input.length) Option.empty else Some(pos)
+  }
+
+  val DELIMS: Set[Char] = ",}]".toSet
+
+  def skipNumber(input: String, index: Int): Option[Int] = {
+    var pos = skipWs(input, index)
+    while (pos < input.length && !(input(pos).isWhitespace || DELIMS.contains(input(pos)))) {
+      pos += 1
+    }
+
+    val n = Try(input.slice(index, pos).toDouble)
+    if (n.isSuccess) Some(pos) else Option.empty
   }
 
   def matchAt(target: String, input: String, index: Int): Option[Int] = {
@@ -62,6 +76,16 @@ object SimpleParser {
       skipTillQuote(state.input, state.index) match {
         case Some(i) => state.copy(index = i, pending = state.pending :+ Match(state.index, i))
         case _ => state.copy(mismatches = state.mismatches + Mismatch("String to be closed", state.index))
+      }
+    }
+  }
+
+  def numChars(state: ParserState): ParserState = {
+    if (state.isFailed) state
+    else {
+      skipNumber(state.input, state.index) match {
+        case Some(i) => state.copy(index = i, pending = state.pending :+ Match(state.index, i))
+        case _ => state.copy(mismatches = state.mismatches + Mismatch("Malformed Number", state.index))
       }
     }
   }
@@ -130,7 +154,7 @@ object SimpleParser {
   val openArr: Parser = applyJValue(lit("["), state => state.copy(stack = state.stack :+ _JArrMarker))
   val closeArr: Parser = lit("]")
 
-  def jValue: Parser = choice(nullValue, trueValue, falseValue, stringValue, jObj, jArr)
+  def jValue: Parser = choice(nullValue, trueValue, falseValue, stringValue, numValue, jObj, jArr)
 
   // terminals
   val nullValue: Parser = applyJValue(lit("null"), state => {
@@ -156,6 +180,14 @@ object SimpleParser {
     val str = state.input.slice(pos.begin, pos.end)
     state.copy(
       stack = state.stack :+ JStr(str)
+    )
+  })
+
+  val numValue: Parser = applyJValue(numChars, state => {
+    val pos = state.pending(state.pending.length - 1)
+    val num = state.input.slice(pos.begin, pos.end).toDouble
+    state.copy(
+      stack = state.stack :+ JNum(num)
     )
   })
 
@@ -194,4 +226,13 @@ object SimpleParser {
 
     state.copy(stack = left :+ JArr(right))
   })
+
+  def parse(input: String): JValue = {
+    val state = jValue(ParserState(input))
+    require(!state.isFailed)
+    require(state.index == input.stripTrailing().length)
+    require(state.stack.length == 1)
+
+    state.stack.head
+  }
 }

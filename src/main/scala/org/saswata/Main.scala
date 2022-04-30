@@ -1,32 +1,31 @@
 package org.saswata
 
-import org.saswata.SimpleParser.ParserState
+import org.saswata.JsonParserCombinator.ParserState
 
 object Main {
+  val input: String =
+    """
+      |{
+      |    "hello": {
+      |        "i am": { "cow" : "boy" },
+      |        "you are": {"cows": [2, {"bessy" : 666}, null]}
+      |    },
+      |    "bad" : false,
+      |    "world": -313.37,
+      |    "foo" : [{"a" : 1}, 2.23, +12.43],
+      |    "bye": "314",
+      |    "good":true,
+      |    "now": null,
+      |    "ok"   :   false
+      |}
+      |""".stripMargin
 
   def main(args: Array[String]): Unit = {
-    v2()
+    test(new Parser(input).parse())
+    test(JsonParserCombinator.parse(input))
   }
 
-  def v1(): Unit = {
-    val input =
-      """
-        |{
-        |    "hello": {
-        |        "i am": { "cow" : "boy" },
-        |        "you are": {"cows": [2, {"bessy" : 666}, null]}
-        |    },
-        |    "bad" : false,
-        |    "world": -313.37,
-        |    "foo" : [{"a" : 1}, 2.23, +12.43],
-        |    "bye": "314",
-        |    "good":true,
-        |    "now": null,
-        |    "ok"   :   false
-        |}
-        |""".stripMargin
-
-    val json: JValue = new Parser(input).parse()
+  def test(json: JValue): Unit = {
     println(json)
 
     val lookup =
@@ -42,31 +41,42 @@ object Main {
     println(lookup)
   }
 
-  def v2(): Unit = {
-    println(SimpleParser.falseValue(ParserState("sadasd")))
-    println(SimpleParser.trueValue(ParserState("true sds ")))
-    println(SimpleParser.nullValue(ParserState("   null dsf   ")))
-    println(SimpleParser.nullValue(ParserState("a   null dsf   ", 3)))
-    println(SimpleParser.openObj(ParserState("a   {null dsf   ", 3)))
-    println(SimpleParser.quote(ParserState("a   \"null dsf   ", 3)))
-    println(SimpleParser.stringValue(ParserState("a   \"null dsf\"   ", 3)))
+  def v2_test(): Unit = {
+    println(JsonParserCombinator.falseValue(ParserState("sadasd")))
+    println(JsonParserCombinator.trueValue(ParserState("true sds ")))
+    println(JsonParserCombinator.nullValue(ParserState("   null dsf   ")))
+    println(JsonParserCombinator.nullValue(ParserState("a   null dsf   ", 3)))
+    println(JsonParserCombinator.openObj(ParserState("a   {null dsf   ", 3)))
+    println(JsonParserCombinator.quote(ParserState("a   \"null dsf   ", 3)))
+    println(JsonParserCombinator.stringValue(ParserState("a   \"null dsf\"   ", 3)))
 
     println("-------------------")
 
-    println(SimpleParser.jValue(ParserState("   null ")))
-    println(SimpleParser.jValue(ParserState("   true ")))
-    println(SimpleParser.jValue(ParserState("   false ")))
-    println(SimpleParser.jValue(ParserState("   \"whoo\" ")))
-    println(SimpleParser.jValue(ParserState("   \"\" ")))
-    println(SimpleParser.jValue(ParserState("   \"           \" ")))
-    println(SimpleParser.jValue(ParserState("   \"whoo ")))
-    println(SimpleParser.jValue(ParserState("   whoo ")))
+    println(JsonParserCombinator.jValue(ParserState("   123 ")))
+    println(JsonParserCombinator.jValue(ParserState("   123.456 ")))
+    println(JsonParserCombinator.jValue(ParserState("   +123.456 ")))
+    println(JsonParserCombinator.jValue(ParserState("   -123.456 ")))
+    println(JsonParserCombinator.jValue(ParserState("   1e5 ")))
+    println(JsonParserCombinator.jValue(ParserState("   + 23 ")))
+    println(JsonParserCombinator.jValue(ParserState("   123.12.2 ")))
+    println(JsonParserCombinator.jValue(ParserState("   +23-4 ")))
 
     println("-------------------")
-    println(SimpleParser.jField(ParserState("   \"key\" : \"    value    \" ")))
-    println(SimpleParser.jValue(ParserState(" {  \"key\" : \"    value    \"   }  ")))
-    println(SimpleParser.jValue(ParserState(" [   {  \"key\" : \"    value    \"   } ] ")))
-    println(SimpleParser.jValue(ParserState(" [   \"a\" , \"b\"  ,  {  \"key\" :   \"    value    \" , \"k1\" : true  }, null ] ")))
-    println(SimpleParser.jValue(ParserState("[f]")))
+
+    println(JsonParserCombinator.jValue(ParserState("   null ")))
+    println(JsonParserCombinator.jValue(ParserState("   true ")))
+    println(JsonParserCombinator.jValue(ParserState("   false ")))
+    println(JsonParserCombinator.jValue(ParserState("   \"whoo\" ")))
+    println(JsonParserCombinator.jValue(ParserState("   \"\" ")))
+    println(JsonParserCombinator.jValue(ParserState("   \"           \" ")))
+    println(JsonParserCombinator.jValue(ParserState("   \"whoo ")))
+    println(JsonParserCombinator.jValue(ParserState("   whoo ")))
+
+    println("-------------------")
+    println(JsonParserCombinator.jField(ParserState("   \"key\" : \"    value    \" ")))
+    println(JsonParserCombinator.jValue(ParserState(" {  \"key\" : \"    value    \"   }  ")))
+    println(JsonParserCombinator.jValue(ParserState(" [   {  \"key\" : \"    value    \"   } ] ")))
+    println(JsonParserCombinator.jValue(ParserState(" [   \"a\" , \"b\"  ,  {  \"key\" :   \"    value    \" , \"k1\" : true  }, null ] ")))
+    println(JsonParserCombinator.jValue(ParserState("[f]")))
   }
 }
