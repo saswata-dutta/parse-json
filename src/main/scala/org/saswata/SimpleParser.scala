@@ -178,7 +178,7 @@ object SimpleParser {
     (stack.take(i), stack.takeRight(l - i))
   }
 
-  val jObj: Parser = applyJValue(sequence(openObj, jField, closeObj), state => {
+  val jObj: Parser = applyJValue(sequence(openObj, repeat(jField, comma), closeObj), state => {
 
     val (left, right) = skipTill(state.stack, _JObjMarker)
 
@@ -189,7 +189,7 @@ object SimpleParser {
     state.copy(stack = left :+ JObj(fields))
   })
 
-  val jArr: Parser = applyJValue(sequence(openArr, jValue, closeArr), state => {
+  val jArr: Parser = applyJValue(sequence(openArr, repeat(jValue, comma), closeArr), state => {
     val (left, right) = skipTill(state.stack, _JArrMarker)
 
     state.copy(stack = left :+ JArr(right))
