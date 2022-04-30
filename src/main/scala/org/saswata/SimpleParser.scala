@@ -66,7 +66,9 @@ object SimpleParser {
     }
   }
 
-  def sequence(parsers: Seq[Parser])(state: ParserState): ParserState = {
+  def sequence(parsers: Parser*)(state: ParserState): ParserState = {
+    require(!parsers.contains(null))
+
     var i = 0
     var curState = state
     while (i < parsers.length && !curState.isFailed) {
@@ -77,8 +79,7 @@ object SimpleParser {
     curState
   }
 
-  def choice(parsers: Seq[Parser])(state: ParserState): ParserState = {
-    println(parsers)
+  def choice(parsers: Parser*)(state: ParserState): ParserState = {
     require(!parsers.contains(null))
 
     if (state.isFailed) state
@@ -129,6 +130,8 @@ object SimpleParser {
   val openArr: Parser = applyJValue(lit("["), state => state.copy(stack = state.stack :+ _JArrMarker))
   val closeArr: Parser = lit("]")
 
+  def jValue: Parser = choice(nullValue, trueValue, falseValue, stringValue, jObj, jArr)
+
   // terminals
   val nullValue: Parser = applyJValue(lit("null"), state => {
     state.copy(
@@ -148,7 +151,7 @@ object SimpleParser {
     )
   })
 
-  val stringValue: Parser = applyJValue(sequence(Seq(quote, stringChars, quote)), state => {
+  val stringValue: Parser = applyJValue(sequence(quote, stringChars, quote), state => {
     val pos = state.pending(state.pending.length - 2)
     val str = state.input.slice(pos.begin, pos.end)
     state.copy(
@@ -157,8 +160,7 @@ object SimpleParser {
   })
 
   // non terminals
-
-  val jField: Parser = applyJValue(sequence(Seq(stringValue, colon, jValue)), state => {
+  val jField: Parser = applyJValue(sequence(stringValue, colon, jValue), state => {
     val pair = _JField(
       key = state.stack(state.stack.length - 2).asInstanceOf[JStr],
       value = state.stack(state.stack.length - 1))
@@ -176,7 +178,7 @@ object SimpleParser {
     (stack.take(i), stack.takeRight(l - i))
   }
 
-  val jObj: Parser = applyJValue(sequence(Seq(openObj, jField, closeObj)), state => {
+  val jObj: Parser = applyJValue(sequence(openObj, jField, closeObj), state => {
 
     val (left, right) = skipTill(state.stack, _JObjMarker)
 
@@ -187,11 +189,9 @@ object SimpleParser {
     state.copy(stack = left :+ JObj(fields))
   })
 
-  val jArr: Parser = applyJValue(sequence(Seq(openArr, jValue, closeArr)), state => {
+  val jArr: Parser = applyJValue(sequence(openArr, jValue, closeArr), state => {
     val (left, right) = skipTill(state.stack, _JArrMarker)
 
     state.copy(stack = left :+ JArr(right))
   })
-
-  def jValue: Parser = choice(Seq(nullValue, trueValue, falseValue, stringValue, jObj, jArr))
 }
