@@ -11,7 +11,7 @@ class Parser(val input: String) {
   def skipWhiteSpace(): Unit =
     while (input(offset).isWhitespace) offset += 1
 
-  def parse(): Json = {
+  def parse(): JValue = {
     skipWhiteSpace()
 
     if (offset >= input.length) throw new IllegalArgumentException(s"Unexpected end of input")
@@ -20,7 +20,7 @@ class Parser(val input: String) {
       case DOUBLE_QUOTE => JStr(parseStr())
       case c if c.isDigit => JNum(parseNum())
       case '+' | '-' => JNum(parseNum())
-      case 't' | 'f' => JBool(parseBool())
+      case 't' | 'f' => if (parseBool()) JTrue else JFalse
       case 'n' => parseNull()
       case '{' => parseObj()
       case '[' => parseArr()
@@ -28,7 +28,7 @@ class Parser(val input: String) {
     }
   }
 
-  def parseNull(): Json =
+  def parseNull(): JValue =
     parseSymbol(input, "null", offset) match {
       case Some(pos) =>
         offset = pos
@@ -77,7 +77,7 @@ class Parser(val input: String) {
     }
 
   def parseObj(): JObj = {
-    val fields = mutable.Buffer[(String, Json)]()
+    val fields = mutable.Buffer[(String, JValue)]()
     skipChar('{')
 
     var done = false
@@ -108,7 +108,7 @@ class Parser(val input: String) {
   }
 
   def parseArr(): JArr = {
-    val elems = mutable.Buffer[Json]()
+    val elems = mutable.Buffer[JValue]()
     skipChar('[')
 
     var done = false

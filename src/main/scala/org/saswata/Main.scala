@@ -1,8 +1,14 @@
 package org.saswata
 
+import org.saswata.SimpleParser.ParserState
+
 object Main {
 
   def main(args: Array[String]): Unit = {
+    v2()
+  }
+
+  def v1(): Unit = {
     val input =
       """
         |{
@@ -15,11 +21,12 @@ object Main {
         |    "foo" : [{"a" : 1}, 2.23, +12.43],
         |    "bye": "314",
         |    "good":true,
-        |    "now": null
+        |    "now": null,
+        |    "ok"   :   false
         |}
         |""".stripMargin
 
-    val json: Json = new Parser(input).parse()
+    val json: JValue = new Parser(input).parse()
     println(json)
 
     val lookup =
@@ -33,5 +40,27 @@ object Main {
       )
 
     println(lookup)
+  }
+
+  def v2(): Unit = {
+    println(SimpleParser.falseValue(ParserState("sadasd")))
+    println(SimpleParser.trueValue(ParserState("true sds ")))
+    println(SimpleParser.nullValue(ParserState("   null dsf   ")))
+    println(SimpleParser.nullValue(ParserState("a   null dsf   ", 3)))
+    println(SimpleParser.openObj(ParserState("a   {null dsf   ", 3)))
+    println(SimpleParser.quote(ParserState("a   \"null dsf   ", 3)))
+    println(SimpleParser.stringValue(ParserState("a   \"null dsf\"   ", 3)))
+
+    println("-------------------")
+
+    println(SimpleParser.jValue(ParserState("   null ")))
+    println(SimpleParser.jValue(ParserState("   true ")))
+    println(SimpleParser.jValue(ParserState("   false ")))
+    println(SimpleParser.jValue(ParserState("   \"whoo\" ")))
+    println(SimpleParser.jValue(ParserState("   \"whoo ")))
+    println(SimpleParser.jValue(ParserState("   whoo ")))
+
+    println("-------------------")
+    println(SimpleParser.jField(ParserState("   \"key\" : \"    value    \" ")))
   }
 }
