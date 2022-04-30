@@ -78,6 +78,9 @@ object SimpleParser {
   }
 
   def choice(parsers: Seq[Parser])(state: ParserState): ParserState = {
+    println(parsers)
+    require(!parsers.contains(null))
+
     if (state.isFailed) state
     else {
       var i = 0
@@ -91,6 +94,22 @@ object SimpleParser {
 
       state.copy(mismatches = mismatches)
     }
+  }
+
+  def repeat(itemParser: Parser, sepParser: Parser)(state: ParserState): ParserState = {
+    var curState = state
+    while (!curState.isFailed) {
+      curState = itemParser(curState)
+      if (!curState.isFailed) {
+        val state1 = sepParser(curState)
+        if (state1.isFailed) {
+          return curState
+        } else {
+          curState = state1
+        }
+      }
+    }
+    curState
   }
 
   def applyJValue(parser: Parser, transformation: Parser): Parser = {
@@ -138,6 +157,7 @@ object SimpleParser {
   })
 
   // non terminals
+
   val jField: Parser = applyJValue(sequence(Seq(stringValue, colon, jValue)), state => {
     val pair = _JField(
       key = state.stack(state.stack.length - 2).asInstanceOf[JStr],
@@ -153,7 +173,7 @@ object SimpleParser {
       i -= 1
     }
 
-    (stack.take(i - 1), stack.takeRight(l - i))
+    (stack.take(i), stack.takeRight(l - i))
   }
 
   val jObj: Parser = applyJValue(sequence(Seq(openObj, jField, closeObj)), state => {

@@ -66,5 +66,7 @@ object Main {
     println(SimpleParser.jField(ParserState("   \"key\" : \"    value    \" ")))
     println(SimpleParser.jValue(ParserState(" {  \"key\" : \"    value    \"   }  ")))
     println(SimpleParser.jValue(ParserState(" [   {  \"key\" : \"    value    \"   } ] ")))
+    println(SimpleParser.jValue(ParserState(" [   \"a\" , \"b\"  ,  {  \"key\" :   \"    value    \" , \"k1\" : true  }, null ] ")))
+    println(SimpleParser.jValue(ParserState("[f]")))
   }
 }
