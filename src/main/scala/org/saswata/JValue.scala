@@ -29,3 +29,10 @@ final case class JArr(elements: Seq[JValue]) extends JValue {
     elements(i)
   }
 }
+
+// hack to allow housing in the parser stack
+final case class _JField(key: JStr, value: JValue) extends JValue
+
+case object _JObjMarker extends JValue
+
+case object _JArrMarker extends JValue

@@ -57,10 +57,14 @@ object Main {
     println(SimpleParser.jValue(ParserState("   true ")))
     println(SimpleParser.jValue(ParserState("   false ")))
     println(SimpleParser.jValue(ParserState("   \"whoo\" ")))
+    println(SimpleParser.jValue(ParserState("   \"\" ")))
+    println(SimpleParser.jValue(ParserState("   \"           \" ")))
     println(SimpleParser.jValue(ParserState("   \"whoo ")))
     println(SimpleParser.jValue(ParserState("   whoo ")))
 
     println("-------------------")
     println(SimpleParser.jField(ParserState("   \"key\" : \"    value    \" ")))
+    println(SimpleParser.jValue(ParserState(" {  \"key\" : \"    value    \"   }  ")))
+    println(SimpleParser.jValue(ParserState(" [   {  \"key\" : \"    value    \"   } ] ")))
   }
 }

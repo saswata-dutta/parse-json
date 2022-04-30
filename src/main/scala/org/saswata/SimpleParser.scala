@@ -37,9 +37,9 @@ object SimpleParser {
   case class Mismatch(expected: String, begin: Int)
 
   case class ParserState(input: String, index: Int = 0,
-                         matches: Vector[Match] = Vector.empty[Match],
+                         pending: Vector[Match] = Vector.empty[Match],
                          mismatches: Set[Mismatch] = Set.empty[Mismatch],
-                         jValues: Vector[JValue] = Vector.empty[JValue]) {
+                         stack: Vector[JValue] = Vector.empty[JValue]) {
 
     def isFailed: Boolean = mismatches.nonEmpty
   }
@@ -50,7 +50,7 @@ object SimpleParser {
     if (state.isFailed) state
     else {
       matchAt(target, state.input, state.index) match {
-        case Some(i) => state.copy(index = i, matches = state.matches :+ Match(i - target.length, i))
+        case Some(i) => state.copy(index = i, pending = state.pending :+ Match(i - target.length, i))
         case _ => state.copy(mismatches = state.mismatches + Mismatch(target, state.index))
       }
     }
@@ -60,14 +60,13 @@ object SimpleParser {
     if (state.isFailed) state
     else {
       skipTillQuote(state.input, state.index) match {
-        case Some(i) => state.copy(index = i, matches = state.matches :+ Match(state.index, i))
+        case Some(i) => state.copy(index = i, pending = state.pending :+ Match(state.index, i))
         case _ => state.copy(mismatches = state.mismatches + Mismatch("String to be closed", state.index))
       }
     }
   }
 
   def sequence(parsers: Seq[Parser])(state: ParserState): ParserState = {
-
     var i = 0
     var curState = state
     while (i < parsers.length && !curState.isFailed) {
@@ -94,59 +93,85 @@ object SimpleParser {
     }
   }
 
-  // punctuations
-  val comma: Parser = lit(",")
-  val colon: Parser = lit(":")
-  val quote: Parser = lit("\"")
-  val openObj: Parser = lit("{")
-  val closeObj: Parser = lit("}")
-  val openArr: Parser = lit("[")
-  val closeArr: Parser = lit("]")
-
-
   def applyJValue(parser: Parser, transformation: Parser): Parser = {
     parser.andThen(state =>
       if (state.isFailed) state else {
-        transformation(state)
+        transformation(state).copy(pending = Vector.empty)
       }
     )
   }
 
+  // punctuations
+  val comma: Parser = lit(",")
+  val colon: Parser = lit(":")
+  val quote: Parser = lit("\"")
+  val openObj: Parser = applyJValue(lit("{"), state => state.copy(stack = state.stack :+ _JObjMarker))
+  val closeObj: Parser = lit("}")
+  val openArr: Parser = applyJValue(lit("["), state => state.copy(stack = state.stack :+ _JArrMarker))
+  val closeArr: Parser = lit("]")
+
   // terminals
   val nullValue: Parser = applyJValue(lit("null"), state => {
     state.copy(
-      matches = state.matches.init,
-      jValues = state.jValues :+ JNull
+      stack = state.stack :+ JNull
     )
   })
 
   val trueValue: Parser = applyJValue(lit("true"), state => {
     state.copy(
-      matches = state.matches.init,
-      jValues = state.jValues :+ JTrue
+      stack = state.stack :+ JTrue
     )
   })
 
   val falseValue: Parser = applyJValue(lit("false"), state => {
     state.copy(
-      matches = state.matches.init,
-      jValues = state.jValues :+ JFalse
+      stack = state.stack :+ JFalse
     )
   })
 
   val stringValue: Parser = applyJValue(sequence(Seq(quote, stringChars, quote)), state => {
-    val pos = state.matches(state.matches.length - 2)
+    val pos = state.pending(state.pending.length - 2)
     val str = state.input.slice(pos.begin, pos.end)
     state.copy(
-      matches = state.matches.dropRight(3),
-      jValues = state.jValues :+ JStr(str)
+      stack = state.stack :+ JStr(str)
     )
   })
 
   // non terminals
-  val jValue: Parser = choice(Seq(nullValue, trueValue, falseValue, stringValue))
   val jField: Parser = applyJValue(sequence(Seq(stringValue, colon, jValue)), state => {
-    // drop the colon
-    state.copy(matches = state.matches.init)
+    val pair = _JField(
+      key = state.stack(state.stack.length - 2).asInstanceOf[JStr],
+      value = state.stack(state.stack.length - 1))
+
+    state.copy(stack = state.stack.dropRight(2) :+ pair)
   })
+
+  private def skipTill(stack: Vector[JValue], marker: JValue): (Vector[JValue], Vector[JValue]) = {
+    val l = stack.length - 1
+    var i = l
+    while (i >= 0 && stack(i) != marker) {
+      i -= 1
+    }
+
+    (stack.take(i - 1), stack.takeRight(l - i))
+  }
+
+  val jObj: Parser = applyJValue(sequence(Seq(openObj, jField, closeObj)), state => {
+
+    val (left, right) = skipTill(state.stack, _JObjMarker)
+
+    val fields = right.collect {
+      case _JField(JStr(key), value) => key -> value
+    }.toMap
+
+    state.copy(stack = left :+ JObj(fields))
+  })
+
+  val jArr: Parser = applyJValue(sequence(Seq(openArr, jValue, closeArr)), state => {
+    val (left, right) = skipTill(state.stack, _JArrMarker)
+
+    state.copy(stack = left :+ JArr(right))
+  })
+
+  def jValue: Parser = choice(Seq(nullValue, trueValue, falseValue, stringValue, jObj, jArr))
 }
