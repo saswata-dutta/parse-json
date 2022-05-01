@@ -23,6 +23,8 @@ object Main {
   def main(args: Array[String]): Unit = {
     test(new Parser(input).parse())
     test(JsonParserCombinator.parse(input))
+
+    v2_test()
   }
 
   def test(json: JValue): Unit = {
@@ -78,5 +80,14 @@ object Main {
     println(JsonParserCombinator.jValue(ParserState(" [   {  \"key\" : \"    value    \"   } ] ")))
     println(JsonParserCombinator.jValue(ParserState(" [   \"a\" , \"b\"  ,  {  \"key\" :   \"    value    \" , \"k1\" : true  }, null ] ")))
     println(JsonParserCombinator.jValue(ParserState("[f]")))
+
+    println(JsonParserCombinator.parse("[]"))
+    println(JsonParserCombinator.parse("  {   }  "))
+    println(JsonParserCombinator.parse("  [ {   } , [], [{ } ]  ] "))
+    println(JsonParserCombinator.parse("  { \"k1\" :  [  ]   } "))
+    println(JsonParserCombinator.parse("  [ { \"k1\" :  {   }  } ] "))
+
+    println("-------------------")
+    println(JsonParserCombinator.jValue(ParserState(" {} {}")))
   }
 }

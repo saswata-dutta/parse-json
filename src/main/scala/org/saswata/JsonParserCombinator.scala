@@ -122,18 +122,17 @@ object JsonParserCombinator {
   }
 
   def repeat(itemParser: Parser, sepParser: Parser)(state: ParserState): ParserState = {
-    var curState = state
+    var curState = itemParser(state)
+    if (curState.isFailed) return state
+
     while (!curState.isFailed) {
-      curState = itemParser(curState)
-      if (!curState.isFailed) {
-        val state1 = sepParser(curState)
-        if (state1.isFailed) {
-          return curState
-        } else {
-          curState = state1
-        }
+      val state1 = sepParser(curState)
+      if (state1.isFailed) {
+        return curState
       }
+      curState = itemParser(state1)
     }
+
     curState
   }
 
